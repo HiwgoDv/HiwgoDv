@@ -104,7 +104,7 @@ def draw_background():
         grass_height = random.randint(5, 15)
         pygame.draw.line(screen, (45, 160, 45), (i, HEIGHT - 100), (i, HEIGHT - 100 - grass_height), 2)
 
-def draw_archer(x, y, angle):
+def draw_archer(x, y, angle, draw_arrow=True):
     """วาดตัวนักยิงธนูที่มีรายละเอียดมากขึ้น"""
     # ลำตัว
     body_color = (80, 60, 40)
@@ -121,7 +121,7 @@ def draw_archer(x, y, angle):
     # ขา
     pygame.draw.line(screen, body_color, (x - 30, y + 40), (x - 35, y + 55), 4)
     pygame.draw.line(screen, body_color, (x - 30, y + 40), (x - 25, y + 55), 4)
-    
+
     # วาดเท้า
     pygame.draw.ellipse(screen, DARK_BROWN, (x - 40, y + 55, 10, 5))  # เท้าซ้าย
     pygame.draw.ellipse(screen, DARK_BROWN, (x - 30, y + 55, 10, 5))  # เท้าขวา
@@ -133,20 +133,35 @@ def draw_archer(x, y, angle):
     bow_start_angle = math.radians(angle - 30)
     bow_end_angle = math.radians(angle + 30)
 
+    # คำนวณตำแหน่งของคันธนูตามมุม
+    bow_x = x
+    bow_y = y
+
     # วาดคันธนู (หนาขึ้นด้วยหลายเส้น)
     for i in range(5):
         offset = i - 2
         pygame.draw.arc(screen, bow_color, 
-                        (x - bow_radius + offset, y - bow_radius + offset, 
+                        (bow_x - bow_radius + offset, bow_y - bow_radius + offset, 
                          bow_radius * 2, bow_radius * 2),
                         bow_start_angle, bow_end_angle, 2)
 
     # วาดสายธนู
-    string_start_x = x + bow_radius * 0.85 * math.cos(bow_start_angle)
-    string_start_y = y + bow_radius * 0.85 * math.sin(bow_start_angle)
-    string_end_x = x + bow_radius * 0.85 * math.cos(bow_end_angle)
-    string_end_y = y + bow_radius * 0.85 * math.sin(bow_end_angle)
+    string_start_x = bow_x + bow_radius * 0.85 * math.cos(bow_start_angle)
+    string_start_y = bow_y + bow_radius * 0.85 * math.sin(bow_start_angle)
+    string_end_x = bow_x + bow_radius * 0.85 * math.cos(bow_end_angle)
+    string_end_y = bow_y + bow_radius * 0.85 * math.sin(bow_end_angle)
     pygame.draw.line(screen, bow_string_color, (string_start_x, string_start_y), (string_end_x, string_end_y), 1)
+    
+    # วาดลูกธนูที่อยู่บนคันธนูเมื่อไม่ได้ยิง
+    if draw_arrow:
+        # คำนวณตำแหน่งกลางของลูกธนูบนคันธนู
+        arrow_x = bow_x
+        arrow_y = bow_y
+        
+        # วาดลูกธนูที่หมุนตามมุม
+        rotated_arrow = pygame.transform.rotate(arrow_img, -angle)
+        arrow_rect = rotated_arrow.get_rect(center=(arrow_x, arrow_y))
+        screen.blit(rotated_arrow, arrow_rect.topleft)
 
 def draw_target(target_x, target_y, target_radius):
     """วาดเป้าหมายละเอียดพร้อมขาตั้งไม้"""
@@ -212,7 +227,7 @@ def draw_cloud(x, y, width, height):
         # ตรวจสอบความถูกต้องของค่าพารามิเตอร์
         if width <= 0 or height <= 0:
             return
-        
+
         # ชั้นของเมฆเพื่อความสมจริงมากขึ้น
         cloud_layers = [
             (0, 0, width, height),
@@ -271,15 +286,15 @@ def draw_cloud(x, y, width, height):
 def draw_rounded_rect(surface, color, rect, radius=15, border_width=0):
     """วาดสี่เหลี่ยมขอบมน"""
     rect = pygame.Rect(rect)
-    
+
     # ตรวจสอบว่ารัศมีไม่เกินครึ่งของความกว้างและความสูง
     radius = min(radius, rect.width//2, rect.height//2)
-    
+
     # วาดพื้นที่หลัก
     if border_width == 0:  # วาดพื้นที่สี่เหลี่ยมทั้งหมด
         pygame.draw.rect(surface, color, rect.inflate(-radius*2, 0))
         pygame.draw.rect(surface, color, rect.inflate(0, -radius*2))
-        
+
         # วาดมุมทั้งสี่
         pygame.draw.circle(surface, color, (rect.left + radius, rect.top + radius), radius)
         pygame.draw.circle(surface, color, (rect.right - radius, rect.top + radius), radius)
@@ -288,7 +303,7 @@ def draw_rounded_rect(surface, color, rect, radius=15, border_width=0):
     else:  # วาดเฉพาะขอบ
         pygame.draw.rect(surface, color, rect.inflate(-radius*2, 0), border_width)
         pygame.draw.rect(surface, color, rect.inflate(0, -radius*2), border_width)
-        
+
         # วาดส่วนโค้งของมุม
         pygame.draw.arc(surface, color, (rect.left, rect.top, radius*2, radius*2), 
                       math.radians(180), math.radians(270), border_width)
@@ -303,12 +318,12 @@ def draw_instructions(show_controls=True):
     """วาดคำแนะนำการเล่นเกมพร้อมกล่องสไตล์"""
     if not show_controls:
         return
-        
+
     # วาดพื้นหลังทึบสำหรับคำแนะนำ
     try:
         # วาดกล่องพื้นหลังสีดำ
         draw_rounded_rect(screen, (0, 0, 0), (10, 10, 200, 185), radius=10)
-        
+
         # เพิ่มขอบสีขาว
         draw_rounded_rect(screen, WHITE, (10, 10, 200, 185), radius=10, border_width=1)
     except pygame.error as e:
@@ -424,7 +439,7 @@ def draw_start_screen():
         draw_rounded_rect(screen, (min(255, DARK_RED[0] + button_glow), DARK_RED[1], DARK_RED[2]),
                         (button_x, button_y, button_width, button_height),
                         radius=12)
-                        
+
         draw_rounded_rect(screen, (min(255, RED[0] + button_glow), RED[1], RED[2]),
                         (button_x + 4, button_y + 4, button_width - 8, button_height - 8),
                         radius=10)
@@ -461,12 +476,12 @@ def draw_start_screen():
         draw_rounded_rect(screen, (0, 0, 0), 
                        (WIDTH // 2 - 200, button_y + button_height + 20, 400, 80),
                        radius=15)
-        
+
         # เพิ่มขอบสีขาวล้อมรอบ
         draw_rounded_rect(screen, WHITE, 
                         (WIDTH // 2 - 200, button_y + button_height + 20, 400, 80),
                         radius=15, border_width=1)
-                        
+
     except pygame.error as e:
         print(f"ข้อผิดพลาดในการสร้าง Surface สำหรับคำแนะนำ: {e}")
         # ใช้รูปแบบที่เรียบง่ายกว่าถ้าเกิดข้อผิดพลาด
@@ -488,7 +503,7 @@ def draw_start_screen():
     cloud_text = instruction_font.render("Watch out for moving clouds blocking your arrows!", True, WHITE)
     cloud_rect = cloud_text.get_rect(center=(WIDTH // 2, button_y + button_height + 60))
     screen.blit(cloud_text, cloud_rect)
-    
+
     # คำแนะนำเกี่ยวกับเป้าเคลื่อนที่
     target_text = instruction_font.render("Hit the moving target for extra challenge!", True, WHITE)
     target_rect = target_text.get_rect(center=(WIDTH // 2, button_y + button_height + 85))
@@ -527,7 +542,7 @@ def main():
     current_fps = 60
     min_fps = 30
     max_fps = 120
-    
+
     # Controls visibility
     show_controls = True
 
@@ -536,14 +551,14 @@ def main():
     force_variation = 0
     last_force_change_time = pygame.time.get_ticks()
     force_change_interval = 10000  # 10000ms = 10 นาที (สำหรับทดสอบ, จริงๆ 10 นาทีคือ 600000)
-    
+
     # ตัวแปรการเคลื่อนที่ของเป้าหมาย
     target_speed = 2  # ความเร็วการเคลื่อนที่ของเป้า
     target_direction = 1  # ทิศทางการเคลื่อนที่ (1 = ลง, -1 = ขึ้น)
     target_min_y = HEIGHT - 250  # จุดสูงสุดที่เป้าเคลื่อนที่ขึ้นได้
     target_max_y = HEIGHT - 100  # จุดต่ำสุดที่เป้าเคลื่อนที่ลงได้
 
-    # ตัวแปรเมฆ
+    #ตัวแปรเมฆ
     cloud_x = WIDTH + 100  # เริ่มต้นออกนอกหน้าจอ
     cloud_y = HEIGHT // 3
     cloud_width = 180
@@ -571,10 +586,10 @@ def main():
         else:
             # เกมหลัก
             draw_background()
-            
+
             # อัพเดตตำแหน่งเป้าหมาย (เคลื่อนที่ขึ้นลง)
             target_y += target_speed * target_direction
-            
+
             # เปลี่ยนทิศทางเมื่อเป้าหมายถึงขอบบนหรือล่าง
             if target_y <= target_min_y:
                 target_direction = 1  # เปลี่ยนทิศทางเป็นลง
@@ -582,7 +597,7 @@ def main():
             elif target_y >= target_max_y:
                 target_direction = -1  # เปลี่ยนทิศทางเป็นขึ้น
                 target_y = target_max_y  # ป้องกันไม่ให้เป้าออกนอกขอบเขต
-            
+
             draw_target(target_x, target_y, target_radius)
 
             # อัพเดตและวาดเมฆ
@@ -596,7 +611,7 @@ def main():
                 cloud_y = random.randint(HEIGHT // 5, HEIGHT // 2)
 
             draw_cloud(cloud_x, cloud_y, cloud_width, cloud_height)
-            draw_archer(archer_x, archer_y, angle)  # วาดนักยิงธนูที่ตำแหน่งคงที่
+            # ไม่ต้องวาดนักยิงธนูที่นี่เพราะจะวาดหลังจากคำนวณตำแหน่งลูกธนูแล้ว
             draw_instructions(show_controls)
 
             # แสดงคะแนน
@@ -656,24 +671,32 @@ def main():
                 try:
                     # เพิ่มเวลาในการบิน
                     flight_time += 1/60  # เพิ่มเวลาตามจำนวนเฟรมต่อวินาที
-                    
+
                     # คำนวณการเคลื่อนที่ของลูกธนู
                     # ค่าปรับเพื่อให้แรงโน้มถ่วงทำงานได้เหมาะสมกับค่าความเร็ว
                     time_scale = 0.05  
-                    
+
                     # คำนวณการเคลื่อนที่ในแนวนอน (ไม่มีแรงโน้มถ่วงในแนวนอน)
                     arrow_x += velocity * math.cos(math.radians(angle))
-                    
+
                     # คำนวณการเคลื่อนที่ในแนวตั้ง โดยใช้แรงโน้มถ่วง 10 m/s²
                     # ความเร็วในแนวตั้งเริ่มต้น - แรงโน้มถ่วง * เวลา
                     vertical_velocity = velocity * math.sin(math.radians(angle)) - GRAVITY * flight_time * time_scale
                     arrow_y -= vertical_velocity  # เคลื่อนที่ตามความเร็วในแนวตั้งปัจจุบัน
 
+                    # คำนวณมุมของลูกธนูตามทิศทางการเคลื่อนที่
+                    # คำนวณเวกเตอร์ความเร็วในแนวราบและแนวดิ่ง
+                    horizontal_velocity = velocity * math.cos(math.radians(angle))
+                    current_vertical_velocity = vertical_velocity
+
+                    # คำนวณมุมของลูกธนูจากเวกเตอร์ความเร็ว (ทิศทางการเคลื่อนที่)
+                    arrow_angle = math.degrees(math.atan2(-current_vertical_velocity, horizontal_velocity))
+
                     # ตรวจสอบว่าค่าพิกัดมีความถูกต้อง (ไม่เป็น NaN หรือ infinity)
                     if math.isnan(arrow_x) or math.isnan(arrow_y) or math.isinf(arrow_x) or math.isinf(arrow_y):
                         print("พบค่าผิดปกติในการคำนวณตำแหน่งลูกธนู")
                         shooting = False
-                        arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
+                        # ตำแหน่งลูกธนูจะถูกรีเซ็ตอัตโนมัติจากการวาดคันธนู
                         continue
 
                     # ตรวจสอบการชนกับเมฆ
@@ -687,7 +710,7 @@ def main():
 
                     if cloud_collision:
                         shooting = False
-                        arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
+                        # ตำแหน่งลูกธนูจะถูกรีเซ็ตอัตโนมัติจากการวาดคันธนู
                         print("ลูกธนูชนเมฆ!")
                         continue
 
@@ -706,15 +729,18 @@ def main():
                             ring_score -= 1
 
                         print(f"โดน! คะแนน: {score}")
-                        arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
+                        # ตำแหน่งลูกธนูจะถูกรีเซ็ตอัตโนมัติจากการวาดคันธนู
                     elif arrow_x > WIDTH or arrow_y < 0 or arrow_y > HEIGHT:
                         shooting = False
-                        arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
+                        # ตำแหน่งลูกธนูจะถูกรีเซ็ตอัตโนมัติจากการวาดคันธนู
                 except Exception as e:
                     print(f"เกิดข้อผิดพลาดในการคำนวณการเคลื่อนที่ของลูกธนู: {e}")
                     shooting = False
-                    arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
+                    # ตำแหน่งลูกธนูจะถูกรีเซ็ตอัตโนมัติจากการวาดคันธนู
 
+            # วาดนักยิงธนูโดยไม่มีลูกธนูบนคันธนูขณะยิง
+            draw_archer(archer_x, archer_y, angle, not shooting)
+            
             # วาดรอยของลูกธนูขณะยิง
             if shooting:
                 for i in range(1, 5):
@@ -727,9 +753,10 @@ def main():
                         except pygame.error:
                             pass  # ข้ามการวาดหากเกิดข้อผิดพลาด
 
-            # วาดลูกธนู
-            rotated_arrow = pygame.transform.rotate(arrow_img, -angle)
-            screen.blit(rotated_arrow, (arrow_x, arrow_y))
+                # วาดลูกธนูที่หันตามทิศทางการเคลื่อนที่
+                rotated_arrow = pygame.transform.rotate(arrow_img, -arrow_angle)
+                arrow_rect = rotated_arrow.get_rect(center=(arrow_x, arrow_y))
+                screen.blit(rotated_arrow, arrow_rect.topleft)
 
         pygame.display.flip()
         clock.tick(current_fps)
