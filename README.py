@@ -174,9 +174,9 @@ def draw_archer(x, y, angle, draw_arrow=True):
 
     # วาดสายธนู
     string_start_x = bow_x + bow_radius * 0.85 * math.cos(bow_start_angle)
-    string_start_y = bow_y + bow_radius * 0.85 * math.sin(bow_start_angle)
+    string_start_y = bow_y - bow_radius * 0.85 * math.sin(bow_start_angle)
     string_end_x = bow_x + bow_radius * 0.85 * math.cos(bow_end_angle)
-    string_end_y = bow_y + bow_radius * 0.85 * math.sin(bow_end_angle)
+    string_end_y = bow_y - bow_radius * 0.85 * math.sin(bow_end_angle)
     
     # จุดกลางของสายธนูสำหรับการดึง
     if draw_arrow:
@@ -196,7 +196,7 @@ def draw_archer(x, y, angle, draw_arrow=True):
         arrow_y = bow_y + math.sin(math.radians(angle)) * 15
         
         # วาดลูกธนูที่หมุนตามมุม
-        rotated_arrow = pygame.transform.rotate(arrow_img, -angle)
+        rotated_arrow = pygame.transform.rotate(arrow_img, angle)
         arrow_rect = rotated_arrow.get_rect(center=(arrow_x, arrow_y))
         screen.blit(rotated_arrow, arrow_rect.topleft)
 
@@ -584,7 +584,7 @@ def main():
     show_controls = True
 
     # ตัวแปรการเปลี่ยนแรง
-    base_velocity = 250
+    base_velocity = 40
     force_variation = 0
     last_force_change_time = pygame.time.get_ticks()
     force_change_interval = 10000  # 10000ms = 10 นาที (สำหรับทดสอบ, จริงๆ 10 นาทีคือ 600000)
@@ -669,10 +669,10 @@ def main():
                         angle = max(angle - 5, -20)  # จำกัดมุมต่ำสุด
                     elif event.key == pygame.K_LEFT:
                         # ลดความแรง
-                        base_velocity = max(250, base_velocity - 10)
+                        base_velocity = max(40, base_velocity - 5)
                     elif event.key == pygame.K_RIGHT:
                         # เพิ่มความแรง
-                        base_velocity = min(370, base_velocity + 10)
+                        base_velocity = min(110, base_velocity + 5)
                     elif event.key == pygame.K_SPACE and not shooting:
                         shooting = True
                         velocity = (base_velocity - force_variation) / 16.67  # ปรับสเกลให้เหมาะสมกับความเร็วที่เพิ่มขึ้น
