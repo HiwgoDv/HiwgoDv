@@ -106,36 +106,63 @@ def draw_background():
 
 def draw_archer(x, y, angle, draw_arrow=True):
     """วาดตัวนักยิงธนูที่มีรายละเอียดมากขึ้น"""
-    # ลำตัว
+    # คำนวณการหมุนของร่างกายนักยิงธนูตามมุม (เพื่อหันไปทิศทางเดียวกับการยิง)
+    body_angle = min(max(angle, -45), 45)  # จำกัดการหมุนของร่างกายไม่ให้มากเกินไป
+    
+    # ลำตัว - หมุนตามมุมเล็กน้อย
     body_color = (80, 60, 40)
-    pygame.draw.line(screen, body_color, (x - 30, y), (x - 30, y + 40), 5)
+    body_top_x = x - 30
+    body_top_y = y
+    body_bottom_x = body_top_x + math.sin(math.radians(body_angle)) * 5
+    body_bottom_y = y + 40
+    pygame.draw.line(screen, body_color, (body_top_x, body_top_y), (body_bottom_x, body_bottom_y), 5)
 
-    # ศีรษะ
+    # ศีรษะ - หมุนตามร่างกายเล็กน้อย
     head_color = (210, 180, 140)
-    pygame.draw.circle(screen, head_color, (x - 30, y - 10), 8)
+    head_x = body_top_x + math.sin(math.radians(body_angle)) * 3
+    head_y = y - 10
+    pygame.draw.circle(screen, head_color, (head_x, head_y), 8)
 
-    # แขน
-    pygame.draw.line(screen, body_color, (x - 30, y + 10), (x - 5, y), 4)
-    pygame.draw.line(screen, body_color, (x - 30, y + 10), (x - 10, y + 15), 4)
+    # แขน - ปรับตามมุม
+    arm_joint_x = body_top_x + math.sin(math.radians(body_angle)) * 2
+    arm_joint_y = y + 10
+    
+    # แขนที่ถือคันธนู - ยืดออกไปตามทิศทางการยิง
+    bow_arm_x = arm_joint_x + math.cos(math.radians(angle)) * 25
+    bow_arm_y = arm_joint_y + math.sin(math.radians(angle)) * 10
+    pygame.draw.line(screen, body_color, (arm_joint_x, arm_joint_y), (bow_arm_x, bow_arm_y), 4)
+    
+    # แขนที่ดึงสายธนู
+    draw_arm_x = arm_joint_x - 5
+    draw_arm_y = arm_joint_y + 5
+    pygame.draw.line(screen, body_color, (arm_joint_x, arm_joint_y), (draw_arm_x, draw_arm_y), 4)
 
     # ขา
-    pygame.draw.line(screen, body_color, (x - 30, y + 40), (x - 35, y + 55), 4)
-    pygame.draw.line(screen, body_color, (x - 30, y + 40), (x - 25, y + 55), 4)
+    leg_joint_x = body_bottom_x
+    leg_joint_y = body_bottom_y
+    left_foot_x = leg_joint_x - 5
+    right_foot_x = leg_joint_x + 5
+    foot_y = leg_joint_y + 15
+    pygame.draw.line(screen, body_color, (leg_joint_x, leg_joint_y), (left_foot_x, foot_y), 4)
+    pygame.draw.line(screen, body_color, (leg_joint_x, leg_joint_y), (right_foot_x, foot_y), 4)
 
     # วาดเท้า
-    pygame.draw.ellipse(screen, DARK_BROWN, (x - 40, y + 55, 10, 5))  # เท้าซ้าย
-    pygame.draw.ellipse(screen, DARK_BROWN, (x - 30, y + 55, 10, 5))  # เท้าขวา
+    pygame.draw.ellipse(screen, DARK_BROWN, (left_foot_x - 5, foot_y, 10, 5))  # เท้าซ้าย
+    pygame.draw.ellipse(screen, DARK_BROWN, (right_foot_x - 5, foot_y, 10, 5))  # เท้าขวา
 
     # คันธนู
     bow_radius = 30
     bow_color = (139, 69, 19)
     bow_string_color = (255, 255, 240)
-    bow_start_angle = math.radians(angle - 30)
-    bow_end_angle = math.radians(angle + 30)
-
+    
     # คำนวณตำแหน่งของคันธนูตามมุม
-    bow_x = x
-    bow_y = y
+    bow_x = bow_arm_x
+    bow_y = bow_arm_y
+    
+    # คำนวณมุมเริ่มต้นและสิ้นสุดของส่วนโค้งของคันธนูตามทิศทาง
+    bow_center_angle = angle  # มุมกลางของคันธนู
+    bow_start_angle = math.radians(bow_center_angle - 30)
+    bow_end_angle = math.radians(bow_center_angle + 30)
 
     # วาดคันธนู (หนาขึ้นด้วยหลายเส้น)
     for i in range(5):
@@ -150,13 +177,23 @@ def draw_archer(x, y, angle, draw_arrow=True):
     string_start_y = bow_y + bow_radius * 0.85 * math.sin(bow_start_angle)
     string_end_x = bow_x + bow_radius * 0.85 * math.cos(bow_end_angle)
     string_end_y = bow_y + bow_radius * 0.85 * math.sin(bow_end_angle)
-    pygame.draw.line(screen, bow_string_color, (string_start_x, string_start_y), (string_end_x, string_end_y), 1)
+    
+    # จุดกลางของสายธนูสำหรับการดึง
+    if draw_arrow:
+        # สายธนูที่ไม่ได้ถูกดึง
+        pygame.draw.line(screen, bow_string_color, (string_start_x, string_start_y), (string_end_x, string_end_y), 1)
+    else:
+        # สายธนูถูกดึง - สายธนูจะถูกดึงไปทางตรงข้ามกับทิศการยิง
+        mid_x = bow_x - math.cos(math.radians(angle)) * 15
+        mid_y = bow_y - math.sin(math.radians(angle)) * 15
+        pygame.draw.line(screen, bow_string_color, (string_start_x, string_start_y), (mid_x, mid_y), 1)
+        pygame.draw.line(screen, bow_string_color, (mid_x, mid_y), (string_end_x, string_end_y), 1)
     
     # วาดลูกธนูที่อยู่บนคันธนูเมื่อไม่ได้ยิง
     if draw_arrow:
         # คำนวณตำแหน่งกลางของลูกธนูบนคันธนู
-        arrow_x = bow_x
-        arrow_y = bow_y
+        arrow_x = bow_x + math.cos(math.radians(angle)) * 15
+        arrow_y = bow_y + math.sin(math.radians(angle)) * 15
         
         # วาดลูกธนูที่หมุนตามมุม
         rotated_arrow = pygame.transform.rotate(arrow_img, -angle)
@@ -547,7 +584,7 @@ def main():
     show_controls = True
 
     # ตัวแปรการเปลี่ยนแรง
-    base_velocity = 250
+    base_velocity = 40
     force_variation = 0
     last_force_change_time = pygame.time.get_ticks()
     force_change_interval = 10000  # 10000ms = 10 นาที (สำหรับทดสอบ, จริงๆ 10 นาทีคือ 600000)
@@ -632,10 +669,10 @@ def main():
                         angle = max(angle - 5, -20)  # จำกัดมุมต่ำสุด
                     elif event.key == pygame.K_LEFT:
                         # ลดความแรง
-                        base_velocity = max(250, base_velocity - 10)
+                        base_velocity = max(40, base_velocity - 10)
                     elif event.key == pygame.K_RIGHT:
                         # เพิ่มความแรง
-                        base_velocity = min(370, base_velocity + 10)
+                        base_velocity = min(110, base_velocity + 10)
                     elif event.key == pygame.K_SPACE and not shooting:
                         shooting = True
                         velocity = (base_velocity - force_variation) / 16.67  # ปรับสเกลให้เหมาะสมกับความเร็วที่เพิ่มขึ้น
