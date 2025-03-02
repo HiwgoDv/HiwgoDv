@@ -180,12 +180,12 @@ def draw_archer(x, y, angle, draw_arrow=True):
     
     # จุดกลางของสายธนูสำหรับการดึง
     if draw_arrow:
-        # สายธนูที่ไม่ได้ถูกดึง
+        # สายธนูที่ไม่ได้ถูกดึง - สายธนูหันไปในทิศทางเดียวกับลูกธนู
         pygame.draw.line(screen, bow_string_color, (string_start_x, string_start_y), (string_end_x, string_end_y), 1)
     else:
-        # สายธนูถูกดึง - สายธนูจะถูกดึงไปทางตรงข้ามกับทิศการยิง
-        mid_x = bow_x - math.cos(math.radians(angle)) * 15
-        mid_y = bow_y - math.sin(math.radians(angle)) * 15
+        # สายธนูถูกดึง - สายธนูหันไปในทิศทางเดียวกับลูกธนู
+        mid_x = bow_x + math.cos(math.radians(angle)) * 15
+        mid_y = bow_y + math.sin(math.radians(angle)) * 15
         pygame.draw.line(screen, bow_string_color, (string_start_x, string_start_y), (mid_x, mid_y), 1)
         pygame.draw.line(screen, bow_string_color, (mid_x, mid_y), (string_end_x, string_end_y), 1)
     
@@ -584,7 +584,7 @@ def main():
     show_controls = True
 
     # ตัวแปรการเปลี่ยนแรง
-    base_velocity = 40
+    base_velocity = 250
     force_variation = 0
     last_force_change_time = pygame.time.get_ticks()
     force_change_interval = 10000  # 10000ms = 10 นาที (สำหรับทดสอบ, จริงๆ 10 นาทีคือ 600000)
@@ -669,10 +669,10 @@ def main():
                         angle = max(angle - 5, -20)  # จำกัดมุมต่ำสุด
                     elif event.key == pygame.K_LEFT:
                         # ลดความแรง
-                        base_velocity = max(40, base_velocity - 10)
+                        base_velocity = max(250, base_velocity - 10)
                     elif event.key == pygame.K_RIGHT:
                         # เพิ่มความแรง
-                        base_velocity = min(110, base_velocity + 10)
+                        base_velocity = min(370, base_velocity + 10)
                     elif event.key == pygame.K_SPACE and not shooting:
                         shooting = True
                         velocity = (base_velocity - force_variation) / 16.67  # ปรับสเกลให้เหมาะสมกับความเร็วที่เพิ่มขึ้น
