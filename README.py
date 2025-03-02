@@ -30,7 +30,7 @@ CLOUD_COLOR = (240, 240, 240)
 try:
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Archery Game")
-    print("สร้างหน้าจอสำเร็จ, ขนาด:", WIDTH, "x", HEIGHT)
+    print("Screen created successfully, size:", WIDTH, "x", HEIGHT)
 except pygame.error as e:
     print(f"เกิดข้อผิดพลาดในการสร้างหน้าจอ: {e}")
     pygame.quit()
@@ -294,34 +294,41 @@ def draw_rounded_rect(surface, color, rect, radius=15, border_width=0):
         pygame.draw.arc(surface, color, (rect.right-radius*2, rect.bottom-radius*2, radius*2, radius*2), 
                       math.radians(0), math.radians(90), border_width)
 
-def draw_instructions():
+def draw_instructions(show_controls=True):
     """วาดคำแนะนำการเล่นเกมพร้อมกล่องสไตล์"""
+    if not show_controls:
+        return
+        
     # วาดพื้นหลังทึบสำหรับคำแนะนำ
     try:
         # วาดกล่องพื้นหลังสีดำ
-        draw_rounded_rect(screen, (0, 0, 0), (10, 10, 200, 110), radius=10)
+        draw_rounded_rect(screen, (0, 0, 0), (10, 10, 200, 185), radius=10)
         
         # เพิ่มขอบสีขาว
-        draw_rounded_rect(screen, WHITE, (10, 10, 200, 110), radius=10, border_width=1)
+        draw_rounded_rect(screen, WHITE, (10, 10, 200, 185), radius=10, border_width=1)
     except pygame.error as e:
         print(f"ข้อผิดพลาดในการวาดกล่องคำแนะนำ: {e}")
         # ใช้สี่เหลี่ยมธรรมดาแทนถ้าเกิดข้อผิดพลาด
         try:
-            pygame.draw.rect(screen, (0, 0, 0), (10, 10, 200, 110))
-            pygame.draw.rect(screen, WHITE, (10, 10, 200, 110), 1)
+            pygame.draw.rect(screen, (0, 0, 0), (10, 10, 200, 185))
+            pygame.draw.rect(screen, WHITE, (10, 10, 200, 185), 1)
         except pygame.error:
             pass  # ข้ามหากยังมีข้อผิดพลาด
 
     # หัวข้อ
     title_font = pygame.font.SysFont('Arial', 20, bold=True)
-    title_surf = title_font.render("ควบคุม:", True, WHITE)
+    title_surf = title_font.render("Controls:", True, WHITE)
     screen.blit(title_surf, (20, 15))
 
     # คำแนะนำพร้อมไอคอน
     instructions = [
-        "↑/↓: ปรับมุมยิง",
-        "SPACE: ยิงลูกธนู",
-        "ESC: กลับสู่เมนูหลัก"
+        "↑/↓: Adjust angle",
+        "←/→: Adjust power",
+        "SPACE: Shoot arrow",
+        "+/-: Increase/decrease FPS",
+        "F: Show/hide FPS",
+        "H: Show/hide controls",
+        "ESC: Back to main menu"
     ]
 
     for i, text in enumerate(instructions):
@@ -362,8 +369,8 @@ def draw_start_screen():
 
     # ชื่อเกมพร้อมเอฟเฟกต์เงา
     title_font = pygame.font.SysFont('Arial', 70, bold=True)
-    shadow_text = title_font.render("ท้าทายการยิงธนู", True, (50, 30, 10))
-    title_text = title_font.render("ท้าทายการยิงธนู", True, DARK_BROWN)
+    shadow_text = title_font.render("Archery Challenge", True, (50, 30, 10))
+    title_text = title_font.render("Archery Challenge", True, DARK_BROWN)
 
     screen.blit(shadow_text, (WIDTH // 2 - shadow_text.get_width() // 2 + 4, HEIGHT // 3 + 4))
     screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 3))
@@ -432,11 +439,11 @@ def draw_start_screen():
 
     # ข้อความบนปุ่มพร้อมเอฟเฟกต์เรืองแสง
     start_font = pygame.font.SysFont('Arial', 30, bold=True)
-    start_text = start_font.render("เริ่มเกม", True, WHITE)
+    start_text = start_font.render("Start Game", True, WHITE)
     start_rect = start_text.get_rect(center=(WIDTH // 2, button_y + button_height // 2))
 
     # เอฟเฟกต์เรืองแสงของข้อความ
-    glow_text = start_font.render("เริ่มเกม", True, (255, 255, 200))
+    glow_text = start_font.render("Start Game", True, (255, 255, 200))
     glow_rect = glow_text.get_rect(center=(WIDTH // 2, button_y + button_height // 2))
 
     if pulse > 0:
@@ -468,12 +475,12 @@ def draw_start_screen():
 
     # คำแนะนำ
     instruction_font = pygame.font.SysFont('Arial', 18)
-    instruction_text = instruction_font.render("คลิกปุ่มเพื่อเริ่มเล่น!", True, WHITE)
+    instruction_text = instruction_font.render("Click button to start playing!", True, WHITE)
     instruction_rect = instruction_text.get_rect(center=(WIDTH // 2, button_y + button_height + 40))
     screen.blit(instruction_text, instruction_rect)
 
     # คำแนะนำเพิ่มเติมเกี่ยวกับเมฆ
-    cloud_text = instruction_font.render("ระวังเมฆที่เคลื่อนที่บังลูกธนูของคุณ!", True, WHITE)
+    cloud_text = instruction_font.render("Watch out for moving clouds blocking your arrows!", True, WHITE)
     cloud_rect = cloud_text.get_rect(center=(WIDTH // 2, button_y + button_height + 70))
     screen.blit(cloud_text, cloud_rect)
 
@@ -496,13 +503,22 @@ def main():
     # ตัวแปรเกม
     target_x = random.randint(600, 750)
     target_y = HEIGHT - 150
-    arrow_x, arrow_y = 100, HEIGHT // 2  # ตำแหน่งเริ่มต้นของลูกธนู
+    archer_x, archer_y = 100, HEIGHT // 2  # ตำแหน่งของนักยิงธนู
+    arrow_x, arrow_y = archer_x, archer_y  # ตำแหน่งเริ่มต้นของลูกธนู
     angle = 0  # มุมการยิง
     shooting = False  # สถานะการยิง
     velocity = 0  # ความเร็วลูกธนู
     hit = False  # ตรวจสอบการโดน
     score = 0
     shots = 0
+
+    # FPS settings
+    current_fps = 60
+    min_fps = 30
+    max_fps = 120
+    
+    # Controls visibility
+    show_controls = True
 
     # ตัวแปรการเปลี่ยนแรง
     base_velocity = 15
@@ -551,14 +567,16 @@ def main():
                 cloud_y = random.randint(HEIGHT // 5, HEIGHT // 2)
 
             draw_cloud(cloud_x, cloud_y, cloud_width, cloud_height)
-            draw_archer(arrow_x - 30, arrow_y, angle)
-            draw_instructions()
+            draw_archer(archer_x, archer_y, angle)  # วาดนักยิงธนูที่ตำแหน่งคงที่
+            draw_instructions(show_controls)
 
             # แสดงคะแนน
-            score_text = font.render(f"คะแนน: {score} | จำนวนยิง: {shots}", True, BLACK)
-            force_text = font.render(f"แรง: {base_velocity - force_variation} กม./ชม.", True, BLACK)
+            score_text = font.render(f"Score: {score} | Shots: {shots}", True, BLACK)
+            force_text = font.render(f"Power: {base_velocity - force_variation} km/h", True, BLACK)
+            fps_text = font.render(f"FPS: {current_fps}", True, BLACK)
             screen.blit(score_text, (WIDTH - 200, 20))
             screen.blit(force_text, (WIDTH - 200, 50))
+            screen.blit(fps_text, (WIDTH - 200, 80))
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -568,15 +586,36 @@ def main():
                         angle = min(angle + 5, 70)  # จำกัดมุมสูงสุด
                     elif event.key == pygame.K_DOWN:
                         angle = max(angle - 5, -20)  # จำกัดมุมต่ำสุด
+                    elif event.key == pygame.K_LEFT:
+                        # ลดความแรง
+                        base_velocity = max(5, base_velocity - 1)
+                    elif event.key == pygame.K_RIGHT:
+                        # เพิ่มความแรง
+                        base_velocity = min(30, base_velocity + 1)
                     elif event.key == pygame.K_SPACE and not shooting:
                         shooting = True
                         velocity = base_velocity - force_variation
                         shots += 1
+                        # ตั้งตำแหน่งเริ่มต้นของลูกธนูให้ตรงกับตำแหน่งนักยิง
+                        arrow_x, arrow_y = archer_x, archer_y
+                    elif event.key == pygame.K_PLUS or event.key == pygame.K_KP_PLUS or event.key == pygame.K_EQUALS:
+                        # เพิ่ม FPS
+                        current_fps = min(max_fps, current_fps + 10)
+                        print(f"FPS increased to {current_fps}")
+                    elif event.key == pygame.K_MINUS or event.key == pygame.K_KP_MINUS:
+                        # ลด FPS
+                        current_fps = max(min_fps, current_fps - 10)
+                        print(f"FPS decreased to {current_fps}")
+                    elif event.key == pygame.K_h:
+                        # Toggle controls visibility
+                        show_controls = not show_controls
+                        print(f"Controls visibility: {'shown' if show_controls else 'hidden'}")
                     elif event.key == pygame.K_ESCAPE:
                         # กลับสู่หน้าจอเริ่มต้น
                         in_start_screen = True
                         # รีเซ็ตตัวแปรเกม
-                        arrow_x, arrow_y = 100, HEIGHT // 2
+                        archer_x, archer_y = 100, HEIGHT // 2
+                        arrow_x, arrow_y = archer_x, archer_y
                         angle = 0
                         shooting = False
                         target_x = random.randint(600, 750)
@@ -595,7 +634,7 @@ def main():
                     if math.isnan(arrow_x) or math.isnan(arrow_y) or math.isinf(arrow_x) or math.isinf(arrow_y):
                         print("พบค่าผิดปกติในการคำนวณตำแหน่งลูกธนู")
                         shooting = False
-                        arrow_x, arrow_y = 100, HEIGHT // 2
+                        arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
                         continue
 
                     # ตรวจสอบการชนกับเมฆ
@@ -609,7 +648,7 @@ def main():
 
                     if cloud_collision:
                         shooting = False
-                        arrow_x, arrow_y = 100, HEIGHT // 2
+                        arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
                         print("ลูกธนูชนเมฆ!")
                         continue
 
@@ -628,14 +667,14 @@ def main():
                             ring_score -= 1
 
                         print(f"โดน! คะแนน: {score}")
-                        arrow_x, arrow_y = 100, HEIGHT // 2
+                        arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
                     elif arrow_x > WIDTH or arrow_y < 0 or arrow_y > HEIGHT:
                         shooting = False
-                        arrow_x, arrow_y = 100, HEIGHT // 2
+                        arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
                 except Exception as e:
                     print(f"เกิดข้อผิดพลาดในการคำนวณการเคลื่อนที่ของลูกธนู: {e}")
                     shooting = False
-                    arrow_x, arrow_y = 100, HEIGHT // 2
+                    arrow_x, arrow_y = archer_x, archer_y  # รีเซ็ตลูกธนูไปที่ตำแหน่งของนักยิง
 
             # วาดรอยของลูกธนูขณะยิง
             if shooting:
@@ -654,7 +693,7 @@ def main():
             screen.blit(rotated_arrow, (arrow_x, arrow_y))
 
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(current_fps)
 
     # ตรวจสอบว่า pygame ยังทำงานอยู่ไหมก่อนออกจากเกม
     try:
