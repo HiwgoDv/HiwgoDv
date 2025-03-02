@@ -1,3 +1,4 @@
+
 import pygame
 import math
 import random
@@ -286,7 +287,7 @@ def draw_start_screen():
     pygame.draw.line(screen, WHITE, (string_end_x, bow_y - 30), (bow_x, bow_y), 2)
     
     # ลูกธนู
-pygame.draw.line(screen, DARK_BROWN, (bow_x - 40 + bow_pull, bow_y), (bow_x + 40, bow_y), 3)
+    pygame.draw.line(screen, DARK_BROWN, (bow_x - 40 + bow_pull, bow_y), (bow_x + 40, bow_y), 3)
     
     # หัวลูกธนู
     pygame.draw.polygon(screen, DARK_RED, [(bow_x + 40, bow_y),
@@ -353,7 +354,8 @@ pygame.draw.line(screen, DARK_BROWN, (bow_x - 40 + bow_pull, bow_y), (bow_x + 40
         for j, (radius_factor, color) in enumerate(target_rings):
             radius = mini_radius * radius_factor / target_radius
             pygame.draw.circle(screen, color, (mini_target_x, mini_target_y), radius)
-          return button_x, button_y, button_width, button_height
+
+    return button_x, button_y, button_width, button_height
 
 def main():
     """ลูปเกมหลัก"""
@@ -401,7 +403,7 @@ def main():
                         button_y <= mouse_y <= button_y + button_height):
                         in_start_screen = False
                         # รีเซ็ตเวลาเกมเมื่อเริ่มเล่น
-last_force_change_time = pygame.time.get_ticks()
+                        last_force_change_time = pygame.time.get_ticks()
         else:
             # เกมหลัก
             draw_background()
@@ -454,7 +456,7 @@ last_force_change_time = pygame.time.get_ticks()
                 arrow_y -= velocity * math.sin(math.radians(angle))
 
                 # เพิ่มผลของแรงโน้มถ่วงเพื่อให้สมจริง
-arrow_y += 0.5 * velocity * 0.1
+                arrow_y += 0.5 * velocity * 0.1
 
                 # ตรวจสอบการชนกับเมฆ
                 cloud_collision = (
