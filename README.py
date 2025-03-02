@@ -2,9 +2,16 @@
 import pygame
 import math
 import random
+import os
+import sys
 
-# เริ่มต้น Pygame
+# เริ่มต้น Pygame และตรวจสอบการใช้งาน
 pygame.init()
+if pygame.get_init():
+    print("Pygame เริ่มต้นสำเร็จ")
+else:
+    print("เกิดข้อผิดพลาดในการเริ่มต้น Pygame")
+    sys.exit(1)
 
 # ค่าคงที่ของเกม
 WIDTH, HEIGHT = 800, 600
@@ -21,8 +28,14 @@ GOLDEN = (255, 215, 0)
 CLOUD_COLOR = (240, 240, 240)
 
 # การตั้งค่าหน้าจอ
-screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Archery Game")
+try:
+    screen = pygame.display.set_mode((WIDTH, HEIGHT))
+    pygame.display.set_caption("Archery Game")
+    print("สร้างหน้าจอสำเร็จ, ขนาด:", WIDTH, "x", HEIGHT)
+except pygame.error as e:
+    print(f"เกิดข้อผิดพลาดในการสร้างหน้าจอ: {e}")
+    pygame.quit()
+    sys.exit(1)
 clock = pygame.time.Clock()
 
 # วาดลูกธนูแทนการโหลดรูปภาพ
@@ -172,37 +185,46 @@ def is_point_in_ellipse(x, y, ellipse_x, ellipse_y, width, height):
 
 def draw_cloud(x, y, width, height):
     """วาดเมฆฟูฟ่องพร้อมไล่ระดับสีและรายละเอียด"""
-    # ชั้นของเมฆเพื่อความสมจริงมากขึ้น
-    cloud_layers = [
-        (0, 0, width, height),
-        (-width/4, height/4, width/2, height/2),
-        (width/2, height/4, width/2, height/2),
-        (width/4, -height/5, width/2, height/2),
-        (width/10, height/3, width/3, height/3)
-    ]
-    
-    # วาดแกนหลักของเมฆพร้อมไล่ระดับสี
-    for layer in cloud_layers:
-        base_x, base_y, layer_width, layer_height = layer
-        for i in range(4):  # หลายชั้นสำหรับเอฟเฟกต์ไล่ระดับสี
-            opacity = 220 - i * 20
-            cloud_shade = (min(255, CLOUD_COLOR[0] - i*5), 
-                           min(255, CLOUD_COLOR[1] - i*5), 
-                           min(255, CLOUD_COLOR[2] - i*5))
-            pygame.draw.ellipse(screen, cloud_shade,
-                              (x + base_x, y + base_y, layer_width, layer_height))
-    
-    # เพิ่มไฮไลท์เพื่อให้เมฆดูมีปริมาตร
-    highlight_color = (250, 250, 250)
-    pygame.draw.ellipse(screen, highlight_color,
-                      (x + width/8, y + height/8, width/4, height/4))
-    
-    # ขอบบางๆ เพื่อความชัดเจน
-    border_color = (220, 220, 220)
-    for layer in cloud_layers:
-        base_x, base_y, layer_width, layer_height = layer
-        pygame.draw.ellipse(screen, border_color,
-                          (x + base_x, y + base_y, layer_width, layer_height), 1)
+    try:
+        # ชั้นของเมฆเพื่อความสมจริงมากขึ้น
+        cloud_layers = [
+            (0, 0, width, height),
+            (-width/4, height/4, width/2, height/2),
+            (width/2, height/4, width/2, height/2),
+            (width/4, -height/5, width/2, height/2),
+            (width/10, height/3, width/3, height/3)
+        ]
+        
+        # วาดแกนหลักของเมฆพร้อมไล่ระดับสี
+        for layer in cloud_layers:
+            base_x, base_y, layer_width, layer_height = layer
+            # ตรวจสอบว่าขนาดไม่ติดลบ
+            if layer_width <= 0 or layer_height <= 0:
+                continue
+                
+            for i in range(4):  # หลายชั้นสำหรับเอฟเฟกต์ไล่ระดับสี
+                opacity = 220 - i * 20
+                cloud_shade = (min(255, CLOUD_COLOR[0] - i*5), 
+                               min(255, CLOUD_COLOR[1] - i*5), 
+                               min(255, CLOUD_COLOR[2] - i*5))
+                pygame.draw.ellipse(screen, cloud_shade,
+                                  (x + base_x, y + base_y, layer_width, layer_height))
+        
+        # เพิ่มไฮไลท์เพื่อให้เมฆดูมีปริมาตร
+        if width > 0 and height > 0:
+            highlight_color = (250, 250, 250)
+            pygame.draw.ellipse(screen, highlight_color,
+                              (x + width/8, y + height/8, width/4, height/4))
+        
+        # ขอบบางๆ เพื่อความชัดเจน
+        border_color = (220, 220, 220)
+        for layer in cloud_layers:
+            base_x, base_y, layer_width, layer_height = layer
+            if layer_width > 0 and layer_height > 0:
+                pygame.draw.ellipse(screen, border_color,
+                                  (x + base_x, y + base_y, layer_width, layer_height), 1)
+    except Exception as e:
+        print(f"เกิดข้อผิดพลาดในการวาดเมฆ: {e}")
 
 def draw_instructions():
     """วาดคำแนะนำการเล่นเกมพร้อมกล่องสไตล์"""
@@ -452,41 +474,57 @@ def main():
 
 
             if shooting:
-                arrow_x += velocity * math.cos(math.radians(angle))
-                arrow_y -= velocity * math.sin(math.radians(angle))
+                try:
+                    # คำนวณการเคลื่อนที่ของลูกธนู
+                    arrow_x += velocity * math.cos(math.radians(angle))
+                    arrow_y -= velocity * math.sin(math.radians(angle))
 
-                # เพิ่มผลของแรงโน้มถ่วงเพื่อให้สมจริง
-                arrow_y += 0.5 * velocity * 0.1
+                    # เพิ่มผลของแรงโน้มถ่วงเพื่อให้สมจริง
+                    arrow_y += 0.5 * velocity * 0.1
 
-                # ตรวจสอบการชนกับเมฆ
-                cloud_collision = (
-                    is_point_in_ellipse(arrow_x, arrow_y, cloud_x, cloud_y, cloud_width, cloud_height) or
-                    is_point_in_ellipse(arrow_x, arrow_y, cloud_x - cloud_width/4, cloud_y + cloud_height/4, cloud_width/2, cloud_height/2) or
-                    is_point_in_ellipse(arrow_x, arrow_y, cloud_x + cloud_width/2, cloud_y + cloud_height/4, cloud_width/2, cloud_height/2)
-                )
-                
-                if cloud_collision:
-                    shooting = False
-                    arrow_x, arrow_y = 100, HEIGHT // 2
-                    print("ลูกธนูชนเมฆ!")
+                    # ตรวจสอบว่าค่าพิกัดมีความถูกต้อง (ไม่เป็น NaN หรือ infinity)
+                    if math.isnan(arrow_x) or math.isnan(arrow_y) or math.isinf(arrow_x) or math.isinf(arrow_y):
+                        print("พบค่าผิดปกติในการคำนวณตำแหน่งลูกธนู")
+                        shooting = False
+                        arrow_x, arrow_y = 100, HEIGHT // 2
+                        continue
 
-                distance = calculate_distance(arrow_x, arrow_y, target_x, target_y)
+                    # ตรวจสอบการชนกับเมฆ
+                    cloud_collision = False
+                    if (cloud_x > -cloud_width and cloud_x < WIDTH):  # เมฆอยู่ในหน้าจอ
+                        cloud_collision = (
+                            is_point_in_ellipse(arrow_x, arrow_y, cloud_x, cloud_y, cloud_width, cloud_height) or
+                            is_point_in_ellipse(arrow_x, arrow_y, cloud_x - cloud_width/4, cloud_y + cloud_height/4, cloud_width/2, cloud_height/2) or
+                            is_point_in_ellipse(arrow_x, arrow_y, cloud_x + cloud_width/2, cloud_y + cloud_height/4, cloud_width/2, cloud_height/2)
+                        )
+                    
+                    if cloud_collision:
+                        shooting = False
+                        arrow_x, arrow_y = 100, HEIGHT // 2
+                        print("ลูกธนูชนเมฆ!")
+                        continue
 
-                if distance < target_radius:
-                    hit = True
-                    shooting = False
+                    distance = calculate_distance(arrow_x, arrow_y, target_x, target_y)
 
-                    # คำนวณคะแนนตามความใกล้เคียงกับศูนย์กลาง
-                    ring_score = 5
-                    for ring_radius, _ in target_rings:
-                        if distance < ring_radius:
-                            score += ring_score
-                            break
-                        ring_score -= 1
+                    if distance < target_radius:
+                        hit = True
+                        shooting = False
 
-                    print(f"โดน! คะแนน: {score}")
-                    arrow_x, arrow_y = 100, HEIGHT // 2
-                elif arrow_x > WIDTH or arrow_y < 0 or arrow_y > HEIGHT:
+                        # คำนวณคะแนนตามความใกล้เคียงกับศูนย์กลาง
+                        ring_score = 5
+                        for ring_radius, _ in target_rings:
+                            if distance < ring_radius:
+                                score += ring_score
+                                break
+                            ring_score -= 1
+
+                        print(f"โดน! คะแนน: {score}")
+                        arrow_x, arrow_y = 100, HEIGHT // 2
+                    elif arrow_x > WIDTH or arrow_y < 0 or arrow_y > HEIGHT:
+                        shooting = False
+                        arrow_x, arrow_y = 100, HEIGHT // 2
+                except Exception as e:
+                    print(f"เกิดข้อผิดพลาดในการคำนวณการเคลื่อนที่ของลูกธนู: {e}")
                     shooting = False
                     arrow_x, arrow_y = 100, HEIGHT // 2
 
@@ -504,7 +542,17 @@ def main():
         pygame.display.flip()
         clock.tick(60)
 
-    pygame.quit()
+    # ตรวจสอบว่า pygame ยังทำงานอยู่ไหมก่อนออกจากเกม
+    try:
+        pygame.quit()
+        print("ปิด Pygame เรียบร้อย")
+    except:
+        print("เกิดข้อผิดพลาดขณะปิด Pygame")
 
 if __name__ == "__main__":
-    main()
+    try:
+        print(f"เริ่มต้นเกม - Pygame เวอร์ชัน: {pygame.version.ver}")
+        main()
+    except Exception as e:
+        print(f"เกิดข้อผิดพลาดที่ไม่คาดคิด: {e}")
+        pygame.quit()
