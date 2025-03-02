@@ -25,6 +25,7 @@ SKY_BLUE = (135, 206, 235)
 GRASS_GREEN = (34, 139, 34)
 GOLDEN = (255, 215, 0)
 CLOUD_COLOR = (240, 240, 240)
+GRAVITY = 10.0  # แรงโน้มถ่วง 10 m/s²
 
 # การตั้งค่าหน้าจอ
 try:
@@ -120,6 +121,10 @@ def draw_archer(x, y, angle):
     # ขา
     pygame.draw.line(screen, body_color, (x - 30, y + 40), (x - 35, y + 55), 4)
     pygame.draw.line(screen, body_color, (x - 30, y + 40), (x - 25, y + 55), 4)
+    
+    # วาดเท้า
+    pygame.draw.ellipse(screen, DARK_BROWN, (x - 40, y + 55, 10, 5))  # เท้าซ้าย
+    pygame.draw.ellipse(screen, DARK_BROWN, (x - 30, y + 55, 10, 5))  # เท้าขวา
 
     # คันธนู
     bow_radius = 30
@@ -479,10 +484,15 @@ def draw_start_screen():
     instruction_rect = instruction_text.get_rect(center=(WIDTH // 2, button_y + button_height + 40))
     screen.blit(instruction_text, instruction_rect)
 
-    # คำแนะนำเพิ่มเติมเกี่ยวกับเมฆ
+    # คำแนะนำเพิ่มเติมเกี่ยวกับเมฆและเป้าเคลื่อนที่
     cloud_text = instruction_font.render("Watch out for moving clouds blocking your arrows!", True, WHITE)
-    cloud_rect = cloud_text.get_rect(center=(WIDTH // 2, button_y + button_height + 70))
+    cloud_rect = cloud_text.get_rect(center=(WIDTH // 2, button_y + button_height + 60))
     screen.blit(cloud_text, cloud_rect)
+    
+    # คำแนะนำเกี่ยวกับเป้าเคลื่อนที่
+    target_text = instruction_font.render("Hit the moving target for extra challenge!", True, WHITE)
+    target_rect = target_text.get_rect(center=(WIDTH // 2, button_y + button_height + 85))
+    screen.blit(target_text, target_rect)
 
     # เพิ่มเป้าหมายตกแต่งในพื้นหลัง
     for i in range(3):
@@ -503,7 +513,7 @@ def main():
     # ตัวแปรเกม
     target_x = random.randint(600, 750)
     target_y = HEIGHT - 150
-    archer_x, archer_y = 100, HEIGHT // 2  # ตำแหน่งของนักยิงธนู
+    archer_x, archer_y = 100, HEIGHT - 160  # ตำแหน่งของนักยิงธนูเหนือพื้นหญ้า 40 หน่วย (HEIGHT - 160 แทน HEIGHT - 220)
     arrow_x, arrow_y = archer_x, archer_y  # ตำแหน่งเริ่มต้นของลูกธนู
     angle = 0  # มุมการยิง
     shooting = False  # สถานะการยิง
@@ -511,6 +521,7 @@ def main():
     hit = False  # ตรวจสอบการโดน
     score = 0
     shots = 0
+    flight_time = 0  # เวลาที่ลูกธนูอยู่ในอากาศ (สำหรับคำนวณแรงโน้มถ่วง)
 
     # FPS settings
     current_fps = 60
@@ -521,10 +532,16 @@ def main():
     show_controls = True
 
     # ตัวแปรการเปลี่ยนแรง
-    base_velocity = 15
+    base_velocity = 250
     force_variation = 0
     last_force_change_time = pygame.time.get_ticks()
     force_change_interval = 10000  # 10000ms = 10 นาที (สำหรับทดสอบ, จริงๆ 10 นาทีคือ 600000)
+    
+    # ตัวแปรการเคลื่อนที่ของเป้าหมาย
+    target_speed = 2  # ความเร็วการเคลื่อนที่ของเป้า
+    target_direction = 1  # ทิศทางการเคลื่อนที่ (1 = ลง, -1 = ขึ้น)
+    target_min_y = HEIGHT - 250  # จุดสูงสุดที่เป้าเคลื่อนที่ขึ้นได้
+    target_max_y = HEIGHT - 100  # จุดต่ำสุดที่เป้าเคลื่อนที่ลงได้
 
     # ตัวแปรเมฆ
     cloud_x = WIDTH + 100  # เริ่มต้นออกนอกหน้าจอ
@@ -554,6 +571,18 @@ def main():
         else:
             # เกมหลัก
             draw_background()
+            
+            # อัพเดตตำแหน่งเป้าหมาย (เคลื่อนที่ขึ้นลง)
+            target_y += target_speed * target_direction
+            
+            # เปลี่ยนทิศทางเมื่อเป้าหมายถึงขอบบนหรือล่าง
+            if target_y <= target_min_y:
+                target_direction = 1  # เปลี่ยนทิศทางเป็นลง
+                target_y = target_min_y  # ป้องกันไม่ให้เป้าออกนอกขอบเขต
+            elif target_y >= target_max_y:
+                target_direction = -1  # เปลี่ยนทิศทางเป็นขึ้น
+                target_y = target_max_y  # ป้องกันไม่ให้เป้าออกนอกขอบเขต
+            
             draw_target(target_x, target_y, target_radius)
 
             # อัพเดตและวาดเมฆ
@@ -572,7 +601,7 @@ def main():
 
             # แสดงคะแนน
             score_text = font.render(f"Score: {score} | Shots: {shots}", True, BLACK)
-            force_text = font.render(f"Power: {base_velocity - force_variation} km/h", True, BLACK)
+            force_text = font.render(f"Power: {base_velocity - force_variation} m/h", True, BLACK)
             fps_text = font.render(f"FPS: {current_fps}", True, BLACK)
             screen.blit(score_text, (WIDTH - 200, 20))
             screen.blit(force_text, (WIDTH - 200, 50))
@@ -588,16 +617,18 @@ def main():
                         angle = max(angle - 5, -20)  # จำกัดมุมต่ำสุด
                     elif event.key == pygame.K_LEFT:
                         # ลดความแรง
-                        base_velocity = max(5, base_velocity - 1)
+                        base_velocity = max(250, base_velocity - 10)
                     elif event.key == pygame.K_RIGHT:
                         # เพิ่มความแรง
-                        base_velocity = min(30, base_velocity + 1)
+                        base_velocity = min(370, base_velocity + 10)
                     elif event.key == pygame.K_SPACE and not shooting:
                         shooting = True
-                        velocity = base_velocity - force_variation
+                        velocity = (base_velocity - force_variation) / 16.67  # ปรับสเกลให้เหมาะสมกับความเร็วที่เพิ่มขึ้น
                         shots += 1
                         # ตั้งตำแหน่งเริ่มต้นของลูกธนูให้ตรงกับตำแหน่งนักยิง
                         arrow_x, arrow_y = archer_x, archer_y
+                        # รีเซ็ตเวลาในการบิน
+                        flight_time = 0
                     elif event.key == pygame.K_PLUS or event.key == pygame.K_KP_PLUS or event.key == pygame.K_EQUALS:
                         # เพิ่ม FPS
                         current_fps = min(max_fps, current_fps + 10)
@@ -614,7 +645,7 @@ def main():
                         # กลับสู่หน้าจอเริ่มต้น
                         in_start_screen = True
                         # รีเซ็ตตัวแปรเกม
-                        archer_x, archer_y = 100, HEIGHT // 2
+                        archer_x, archer_y = 100, HEIGHT - 160
                         arrow_x, arrow_y = archer_x, archer_y
                         angle = 0
                         shooting = False
@@ -623,12 +654,20 @@ def main():
 
             if shooting:
                 try:
+                    # เพิ่มเวลาในการบิน
+                    flight_time += 1/60  # เพิ่มเวลาตามจำนวนเฟรมต่อวินาที
+                    
                     # คำนวณการเคลื่อนที่ของลูกธนู
+                    # ค่าปรับเพื่อให้แรงโน้มถ่วงทำงานได้เหมาะสมกับค่าความเร็ว
+                    time_scale = 0.05  
+                    
+                    # คำนวณการเคลื่อนที่ในแนวนอน (ไม่มีแรงโน้มถ่วงในแนวนอน)
                     arrow_x += velocity * math.cos(math.radians(angle))
-                    arrow_y -= velocity * math.sin(math.radians(angle))
-
-                    # เพิ่มผลของแรงโน้มถ่วงเพื่อให้สมจริง
-                    arrow_y += 0.5 * velocity * 0.1
+                    
+                    # คำนวณการเคลื่อนที่ในแนวตั้ง โดยใช้แรงโน้มถ่วง 10 m/s²
+                    # ความเร็วในแนวตั้งเริ่มต้น - แรงโน้มถ่วง * เวลา
+                    vertical_velocity = velocity * math.sin(math.radians(angle)) - GRAVITY * flight_time * time_scale
+                    arrow_y -= vertical_velocity  # เคลื่อนที่ตามความเร็วในแนวตั้งปัจจุบัน
 
                     # ตรวจสอบว่าค่าพิกัดมีความถูกต้อง (ไม่เป็น NaN หรือ infinity)
                     if math.isnan(arrow_x) or math.isnan(arrow_y) or math.isinf(arrow_x) or math.isinf(arrow_y):
